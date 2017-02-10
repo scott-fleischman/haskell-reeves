@@ -6,6 +6,8 @@ module Main where
 import           Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as Byte
+import           Data.Ord (comparing)
+import qualified Data.List as List
 import           Data.Maybe (maybe)
 import           Data.Text (Text)
 import qualified Data.Text as Text
@@ -35,9 +37,17 @@ executeOrIgnore t m = case HashMap.lookup t m of
     putStrLn $ show code
     putStrLn ""
 
+printCommands :: Text -> (Text, HashMap Text Text) -> IO ()
+printCommands pre (name, m) = mapM_ (\x -> putStrLn . Text.unpack $ Text.concat [pre, name, " ", x]) (List.sort . HashMap.keys $ m)
+
 main :: IO ()
-main = parseJson "reeves.json" $ \reeves -> do
+main = parseJson filePath $ \reeves -> do
   (fmap . fmap) decodeUtf8 Byte.getArgs >>= \case
     ["-a", s] -> mapM_ (executeOrIgnore s) reeves
     [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n reeves)
+    [] -> do
+      putStrLn $ "Commands available in " ++ filePath
+      mapM_ (printCommands "  ") (List.sortBy (comparing fst) . HashMap.toList $ reeves)
     _ -> putStrLn "Invalid arguments: use `reeves -a <cmd>` or `reeves <name> <cmd>`"
+  where
+  filePath = "reeves.json"
