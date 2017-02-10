@@ -64,18 +64,22 @@ doGroup top g s = case HashMap.lookup g (topGroups top) of
     let groupCmds = catMaybes . fmap (flip HashMap.lookup allCmds) $ ns
     mapM_ (executeOrIgnore s) groupCmds
 
+runWithArgs :: FilePath -> [Text] -> Top -> IO ()
+runWithArgs filePath args reeves = case args of
+  ["-a", s] -> mapM_ (executeOrIgnore s) (topCommands reeves)
+  ["-g", g, s] -> doGroup reeves g s
+  [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n $ topCommands reeves)
+  [] -> do
+    putStrLn $ "File: " ++ filePath
+    putStrLn $ "Commands:"
+    mapM_ (printCommands "  ") (List.sortBy (comparing fst) . HashMap.toList . topCommands $ reeves)
+    putStrLn $ "Groups:"
+    printGroups "  " (topGroups reeves)
+  _ -> putStrLn "Invalid arguments: use `reeves -a <cmd>` or `reeves <name> <cmd>`"
+
 main :: IO ()
-main = parseJson filePath $ \reeves -> do
-  (fmap . fmap) decodeUtf8 Byte.getArgs >>= \case
-    ["-a", s] -> mapM_ (executeOrIgnore s) (topCommands reeves)
-    ["-g", g, s] -> doGroup reeves g s
-    [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n $ topCommands reeves)
-    [] -> do
-      putStrLn $ "File: " ++ filePath
-      putStrLn $ "Commands:"
-      mapM_ (printCommands "  ") (List.sortBy (comparing fst) . HashMap.toList . topCommands $ reeves)
-      putStrLn $ "Groups:"
-      printGroups "  " (topGroups reeves)
-    _ -> putStrLn "Invalid arguments: use `reeves -a <cmd>` or `reeves <name> <cmd>`"
+main = do
+  args <- (fmap . fmap) decodeUtf8 Byte.getArgs
+  parseJson filePath (runWithArgs filePath args)
   where
   filePath = "reeves.json"
