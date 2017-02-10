@@ -21,4 +21,5 @@ executable reeves
     base
     , text
     , aeson
+    , bytestring
     , unordered-containers

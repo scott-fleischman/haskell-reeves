@@ -1,32 +1,16 @@
 module Main where
 
+import           Data.Aeson ((.=))
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as Byte
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 
-data Config
-  = Config
-  { items :: HashMap Text Item
-  }
-
-data Item
-  = ServiceItem Service
-  | ReferenceItem Text
-
-data Service
-  = Service
-  { beforeStart :: [Command]
-  , start :: [Command]
-  , stop :: [Command]
-  }
-
-data Command
-  = ShellCommand Text
-  | DockerCommand Docker
-
-data Docker = Docker
-
 main :: IO ()
 main = do
-  putStrLn "turtle"
+  contents <- Byte.readFile "example.json"
+  case Aeson.decodeStrict' contents :: Maybe (HashMap Text (HashMap Text Text)) of
+    Nothing -> putStrLn "Unable to read file"
+    Just top -> putStrLn "Success"
