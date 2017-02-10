@@ -24,7 +24,7 @@ parseJson
 parseJson file f = do
   contents <- Byte.readFile file
   case Aeson.decodeStrict' contents of
-    Nothing -> putStrLn "Unable to read file"
+    Nothing -> putStrLn $ "Unable to load " ++ file
     Just top -> f top
 
 executeOrIgnore :: Text -> HashMap Text Text -> IO ()
