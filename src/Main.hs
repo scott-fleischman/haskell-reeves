@@ -8,9 +8,15 @@ import qualified Data.Text as Text
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 
-main :: IO ()
-main = do
-  contents <- Byte.readFile "example.json"
-  case Aeson.decodeStrict' contents :: Maybe (HashMap Text (HashMap Text Text)) of
+handleInput
+  :: String
+  -> (HashMap Text (HashMap Text Text) -> IO ())
+  -> IO ()
+handleInput file f = do
+  contents <- Byte.readFile file
+  case Aeson.decodeStrict' contents of
     Nothing -> putStrLn "Unable to read file"
-    Just top -> putStrLn "Success"
+    Just top -> f top
+
+main :: IO ()
+main = handleInput "example.json" (\_ -> putStrLn "Success")
