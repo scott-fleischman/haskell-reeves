@@ -3,7 +3,7 @@
 
 module Main where
 
-import           Data.Aeson ((.=))
+import           Data.Aeson ((.:))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as Byte
 import           Data.Ord (comparing)
@@ -17,9 +17,20 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified System.Process as Process
 import qualified System.Posix.Env.ByteString as Byte
 
+data Top = Top
+  { topCommands :: HashMap Text (HashMap Text Text)
+  , topGroups :: HashMap Text [Text]
+  }
+instance Aeson.FromJSON Top where
+  parseJSON (Aeson.Object v)
+    = Top
+    <$> v .: "commands"
+    <*> v .: "groups"
+  parseJSON _ = fail "Invalid JSON"
+
 parseJson
   :: String
-  -> (HashMap Text (HashMap Text Text) -> IO ())
+  -> (Top -> IO ())
   -> IO ()
 parseJson file f = do
   contents <- Byte.readFile file
@@ -43,11 +54,11 @@ printCommands pre (name, m) = mapM_ (\x -> putStrLn . Text.unpack $ Text.concat 
 main :: IO ()
 main = parseJson filePath $ \reeves -> do
   (fmap . fmap) decodeUtf8 Byte.getArgs >>= \case
-    ["-a", s] -> mapM_ (executeOrIgnore s) reeves
-    [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n reeves)
+    ["-a", s] -> mapM_ (executeOrIgnore s) (topCommands reeves)
+    [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n $ topCommands reeves)
     [] -> do
       putStrLn $ "Commands available in " ++ filePath
-      mapM_ (printCommands "  ") (List.sortBy (comparing fst) . HashMap.toList $ reeves)
+      mapM_ (printCommands "  ") (List.sortBy (comparing fst) . HashMap.toList . topCommands $ reeves)
     _ -> putStrLn "Invalid arguments: use `reeves -a <cmd>` or `reeves <name> <cmd>`"
   where
   filePath = "reeves.json"
