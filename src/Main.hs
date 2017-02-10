@@ -14,6 +14,7 @@ import qualified Data.Text as Text
 import           Data.Text.Encoding (decodeUtf8)
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           System.Directory (doesFileExist, getHomeDirectory)
 import qualified System.Process as Process
 import qualified System.Posix.Env.ByteString as Byte
 
@@ -77,9 +78,19 @@ runWithArgs filePath args reeves = case args of
     printGroups "  " (topGroups reeves)
   _ -> putStrLn "Invalid arguments: use `reeves -a <cmd>` or `reeves <name> <cmd>`"
 
+findMatchingFile :: (FilePath -> IO ()) -> IO ()
+findMatchingFile f = do
+  let filePath = ".reeves.json"
+  doesFileExist filePath >>= \case
+    True -> f filePath
+    False -> do
+      homeDirectory <- getHomeDirectory
+      let homeFilePath = homeDirectory ++ "/" ++ filePath
+      doesFileExist homeFilePath >>= \case
+        True -> f homeFilePath
+        False -> putStrLn "Unable to find ./.reeves.json or ~/.reeves.json"
+
 main :: IO ()
 main = do
   args <- (fmap . fmap) decodeUtf8 Byte.getArgs
-  parseJson filePath (runWithArgs filePath args)
-  where
-  filePath = "reeves.json"
+  findMatchingFile (\x -> parseJson x (runWithArgs x args))
