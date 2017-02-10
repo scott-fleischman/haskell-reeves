@@ -6,6 +6,7 @@ module Main where
 import           Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as Byte
+import           Data.Maybe (maybe)
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Data.Text.Encoding (decodeUtf8)
@@ -25,7 +26,7 @@ parseJson file f = do
     Just top -> f top
 
 executeOrIgnore :: Text -> HashMap Text Text -> IO ()
-executeOrIgnore m t = case HashMap.lookup m t of
+executeOrIgnore t m = case HashMap.lookup t m of
   Nothing -> return ()
   Just s -> do
     let ss = Text.unpack s
@@ -38,4 +39,5 @@ main :: IO ()
 main = parseJson "reeves.json" $ \reeves -> do
   (fmap . fmap) decodeUtf8 Byte.getArgs >>= \case
     ["-a", s] -> mapM_ (executeOrIgnore s) reeves
+    [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n reeves)
     _ -> putStrLn "Invalid arguments: use `reeves -a <cmd>` or `reeves <name> <cmd>`"
