@@ -51,6 +51,9 @@ executeOrIgnore t m = case HashMap.lookup t m of
 printCommands :: Text -> (Text, HashMap Text Text) -> IO ()
 printCommands pre (name, m) = mapM_ (\x -> putStrLn . Text.unpack $ Text.concat [pre, name, " ", x]) (List.sort . HashMap.keys $ m)
 
+printGroups :: Text -> HashMap Text a -> IO ()
+printGroups pre m = mapM_ (\x -> putStrLn . Text.unpack $ Text.concat [pre, x]) (List.sort . HashMap.keys $ m)
+
 doGroup :: Top -> Text -> Text -> IO ()
 doGroup top g s = case HashMap.lookup g (topGroups top) of
   Nothing -> return ()
@@ -66,8 +69,11 @@ main = parseJson filePath $ \reeves -> do
     ["-g", g, s] -> doGroup reeves g s
     [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n $ topCommands reeves)
     [] -> do
-      putStrLn $ "Commands available in " ++ filePath
+      putStrLn $ "File: " ++ filePath
+      putStrLn $ "Commands:"
       mapM_ (printCommands "  ") (List.sortBy (comparing fst) . HashMap.toList . topCommands $ reeves)
+      putStrLn $ "Groups:"
+      printGroups "  " (topGroups reeves)
     _ -> putStrLn "Invalid arguments: use `reeves -a <cmd>` or `reeves <name> <cmd>`"
   where
   filePath = "reeves.json"
