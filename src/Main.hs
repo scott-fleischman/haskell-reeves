@@ -8,7 +8,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as Byte
 import           Data.Ord (comparing)
 import qualified Data.List as List
-import           Data.Maybe (maybe)
+import           Data.Maybe (maybe, catMaybes)
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Data.Text.Encoding (decodeUtf8)
@@ -51,10 +51,19 @@ executeOrIgnore t m = case HashMap.lookup t m of
 printCommands :: Text -> (Text, HashMap Text Text) -> IO ()
 printCommands pre (name, m) = mapM_ (\x -> putStrLn . Text.unpack $ Text.concat [pre, name, " ", x]) (List.sort . HashMap.keys $ m)
 
+doGroup :: Top -> Text -> Text -> IO ()
+doGroup top g s = case HashMap.lookup g (topGroups top) of
+  Nothing -> return ()
+  Just ns -> do
+    let allCmds = topCommands top
+    let groupCmds = catMaybes . fmap (flip HashMap.lookup allCmds) $ ns
+    mapM_ (executeOrIgnore s) groupCmds
+
 main :: IO ()
 main = parseJson filePath $ \reeves -> do
   (fmap . fmap) decodeUtf8 Byte.getArgs >>= \case
     ["-a", s] -> mapM_ (executeOrIgnore s) (topCommands reeves)
+    ["-g", g, s] -> doGroup reeves g s
     [n, s] -> maybe (return ()) (executeOrIgnore s) (HashMap.lookup n $ topCommands reeves)
     [] -> do
       putStrLn $ "Commands available in " ++ filePath
