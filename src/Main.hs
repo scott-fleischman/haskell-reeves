@@ -49,10 +49,12 @@ executeOrIgnore t m = case HashMap.lookup t m of
     putStrLn ""
 
 printCommands :: Text -> (Text, HashMap Text Text) -> IO ()
-printCommands pre (name, m) = mapM_ (\x -> putStrLn . Text.unpack $ Text.concat [pre, name, " ", x]) (List.sort . HashMap.keys $ m)
+printCommands pre (name, m) = putStrLn . Text.unpack . Text.concat $ [pre, name, "\t", Text.intercalate ", " . List.sort . HashMap.keys $ m]
 
-printGroups :: Text -> HashMap Text a -> IO ()
-printGroups pre m = mapM_ (\x -> putStrLn . Text.unpack $ Text.concat [pre, x]) (List.sort . HashMap.keys $ m)
+printGroups :: Text -> HashMap Text [Text] -> IO ()
+printGroups pre m = mapM_ printGroupValues (List.sortBy (comparing fst) . HashMap.toList $ m)
+  where
+  printGroupValues (x, y) = putStrLn . Text.unpack $ Text.concat [pre, x, "\t", Text.intercalate ", " . List.sort $ y]
 
 doGroup :: Top -> Text -> Text -> IO ()
 doGroup top g s = case HashMap.lookup g (topGroups top) of
